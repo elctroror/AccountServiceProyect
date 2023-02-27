@@ -1,5 +1,6 @@
 package com.AccountService.AccountService.service;
 
+import brave.Tracer;
 import com.AccountService.AccountService.dao.AccountDao;
 import com.AccountService.AccountService.entity.Account;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,8 @@ public class ServiceImplementAccount implements ServiceAccount {
     @Autowired
     private RestTemplate restTemplate;
 
+    @Autowired
+    private Tracer tracer;
     private static String PATTERN_Name = "[a-z]+[^\s]{1,20}";
 
     @Override
@@ -48,11 +51,14 @@ public class ServiceImplementAccount implements ServiceAccount {
           try {
               Account account = accountDao.findById(id).get();
               if(account!=null&&account.getActive()==true){
+                  tracer.currentSpan().tag("account find","HttpStatus.ACCEPTED");
                   return   new ResponseEntity( account, HttpStatus.ACCEPTED);
               }
+              tracer.currentSpan().tag("Could not find the account","HttpStatus.BAD_REQUEST");
               return new ResponseEntity ("Could not find the account", HttpStatus.BAD_REQUEST);
           }catch (Exception e){
               System.out.println("Exception: "+e);
+              tracer.currentSpan().tag("something go bad","HttpStatus.BAD_REQUEST");
               return new ResponseEntity ("something go bad", HttpStatus.BAD_REQUEST);
           }
 
@@ -66,12 +72,14 @@ public class ServiceImplementAccount implements ServiceAccount {
             if (disableAccount != null) {
                 disableAccount.setActive(false);
                 accountDao.save(disableAccount);
+                tracer.currentSpan().tag("account disabled","HttpStatus.ACCEPTED");
                 return new ResponseEntity( disableAccount, HttpStatus.ACCEPTED);
             }
-
+            tracer.currentSpan().tag("can´t disable the account","HttpStatus.BAD_REQUEST");
             return new ResponseEntity ("can´t disable the account", HttpStatus.BAD_REQUEST);
         }catch(Exception e){
             System.out.println("Exception: "+e);
+            tracer.currentSpan().tag("something go bad","HttpStatus.BAD_REQUEST");
             return new ResponseEntity ("something go bad", HttpStatus.BAD_REQUEST);
         }
     }
@@ -87,14 +95,18 @@ public class ServiceImplementAccount implements ServiceAccount {
                 if(talias) {
                     Account account = new Account(userId, new BigDecimal(0.00), createCbu(9), createAccountNumber(10), alias);
                     accountDao.save(account);
+                    tracer.currentSpan().tag("account created","HttpStatus.ACCEPTED");
                     return new ResponseEntity(account, HttpStatus.ACCEPTED);
                 }
+                tracer.currentSpan().tag("the alias can´t contain spaces","HttpStatus.BAD_REQUEST");
                 return new ResponseEntity ("the alias can´t contain spaces", HttpStatus.BAD_REQUEST);
             }
+            tracer.currentSpan().tag("user not found","HttpStatus.BAD_REQUEST");
             return new ResponseEntity ("user not found", HttpStatus.BAD_REQUEST);
 
          }catch (Exception e){
              System.out.println("Exception: "+e);
+            tracer.currentSpan().tag("something go bad","HttpStatus.BAD_REQUEST");
             return new ResponseEntity ("something go bad", HttpStatus.BAD_REQUEST);
          }
 
@@ -170,6 +182,7 @@ public class ServiceImplementAccount implements ServiceAccount {
                     accountDao.save(activeReceiverAccount.get());
                     return true;
                 }
+
                 throw new RuntimeException("the account does not have enough salary");
 
             }
