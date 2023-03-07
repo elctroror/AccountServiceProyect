@@ -88,7 +88,7 @@ public class ServiceImplementAccount implements ServiceAccount {
     public ResponseEntity createAccount(Long userId,String alias)  {
 
         try {
-            Boolean existUser = restTemplate.getForObject("http://localhost:8001/api/user/findActive/"+userId,Boolean.class);
+            Boolean existUser = restTemplate.getForObject("http://localhost:8001/user/findActive/"+userId,Boolean.class);
 
             if(existUser) {
                 Boolean talias= alias.matches(PATTERN_Name);
